@@ -11,86 +11,27 @@
   <a href="signup.html">Signup</a>
   <a href="#about">About</a>
 </div>
-  <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
-                <style>
+  
+                    <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
         
-        html, body {
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        
-        #city-regions {
-            width: 100%;
-            height: 40px;
-            cursor: default;
-            font-family: "-apple-system-font", Futura, "Helvetica Neue", "Helvetica", "Arial", "sans-serif";
-        }
-        
-        #city-regions div {
-            float: left;
-            width: 50%;
-            height: 100%;
-            text-align: center;
-            background-color: white;
-        }
-        
-        #city-regions p {
-            margin-top: 9px;
-            margin-bottom: 10px;
-        }
-        
-        #city-regions div.selected-city {
-            background-color: #08f;
-            color: #f8f9f0;
-        }
-        
+        <style>
         #map {
-            width: 100%;
-            height: 560px;
+            height: 600px;
         }
+        </style>
         
-                </style>
-            </head>
-            <body>
-                <div id="city-regions">
-                    <div id="sanfrancisco">
-                        <p>San Francisco</p>
-                    </div>
-                    <div id="toronto">
-                        <p>Toronto</p>
-                    </div>
-                </div>
-                <div id="map"></div>
+        </head>
         
-                <script>
+        <body>
+        <div id="map"></div>
         
-        var SELECTED_CITY_CLASS = "selected-city";
+        <script>
         
-        // Define camera boundaries and zoom ranges for San Francisco and Toronto.
-        var CITIES = {
-            sanfrancisco: {
-                region: new mapkit.CoordinateRegion(
-                    new mapkit.Coordinate(37.7812, -122.44755),
-                    new mapkit.CoordinateSpan(0.10, 0.11)
-                ),
-                zoomRange: new mapkit.CameraZoomRange(250, 15000)
-            },
+        var MarkerAnnotation = mapkit.MarkerAnnotation,
+            clickAnnotation;
+        var sfo = new mapkit.Coordinate(37.616934, -122.383790),
+            work = new mapkit.Coordinate(37.3349, -122.0090201);
         
-            toronto: {
-                region: new mapkit.CoordinateRegion(
-                    new mapkit.Coordinate(43.6451, -79.37505),
-                    new mapkit.CoordinateSpan(0.05, 0.11)
-                ),
-                zoomRange: new mapkit.CameraZoomRange(250, 20000)
-            }
-        }
-        
-        // Initialize mapkit.
         mapkit.init({
             authorizationCallback: function(done) {
                 var xhr = new XMLHttpRequest();
@@ -101,39 +42,42 @@
                 xhr.send();
             }
         });
-        
-        // Create the map and set the current city to San Francisco when ready.
         var map = new mapkit.Map("map");
-        mapkit.addEventListener("configuration-change", function configurationChanged() {
-            mapkit.removeEventListener("configuration-change", configurationChanged);
-            setCity("sanfrancisco");
-        });
         
-        // Show the selected city on the map and highlight its name.
-        function setCity(name) {
-            // Highlight the current city.
-            var div = document.getElementsByClassName(SELECTED_CITY_CLASS)[0];
-            if (div) {
-                div.classList.remove(SELECTED_CITY_CLASS);
+        // Setting properties on creation:
+        var sfoAnnotation = new MarkerAnnotation(sfo, { color: "#f4a56d", title: "SFO", glyphText: "✈️" });
+        
+        // Setting properties after creation:
+        var workAnnotation = new MarkerAnnotation(work);
+        workAnnotation.color = "#969696"; 
+        workAnnotation.title = "Work";
+        workAnnotation.subtitle = "Apple Park";
+        workAnnotation.selected = "true";
+        workAnnotation.glyphText = "";
+        
+        // Add and show both annotations on the map
+        map.showItems([sfoAnnotation, workAnnotation]);
+        
+        // Drop an annotation where a Shift-click is detected:
+        map.element.addEventListener("click", function(event) {
+            if(!event.shiftKey) {
+                return;
             }
-            document.getElementById(name).classList.add(SELECTED_CITY_CLASS);
         
-            // Show it on the map, with camera boundaries and zoom range for this city.
-            var city = CITIES[name];
-            map.cameraZoomRange = city.zoomRange;
-            map.cameraBoundary = city.region;
-            map.region = city.region;
-        }
+            if(clickAnnotation) {
+                map.removeAnnotation(clickAnnotation);
+            }
         
-        // Listen to click events to change the city.
-        var cityRegionsElement = document.getElementById("city-regions");
-        cityRegionsElement.addEventListener("click", function(event) {
-            setCity(event.target.id || event.target.parentNode.id);
+            var coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.pageX, event.pageY));
+            clickAnnotation = new MarkerAnnotation(coordinate, {
+                title: "Click!",
+                color: "#c969e0"
+            });
+            map.addAnnotation(clickAnnotation);
         });
         
-                </script>
-		    </div>
-    ></script>
+        </script>
+		</div>
 
 </body>
 </html>
