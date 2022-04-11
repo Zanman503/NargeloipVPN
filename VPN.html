@@ -12,25 +12,49 @@
   <a href="#about">About</a>
 </div>
   
-                    <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
-        
-        <style>
-        #map {
-            height: 600px;
+           <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+        <style type="text/css">
+        html, body, #container {
+            height: 100%;
+            overflow: hidden;
         }
-        </style>
         
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        #loupe {
+            width: 200px;
+            width: 20vw;
+            height: 200px;
+            height: 20vw;
+            position: absolute;
+            top: 11px;
+            left: 11px;
+        
+            overflow: hidden;
+        
+            border: 8px solid #FFF;
+        
+            -webkit-box-shadow: 0 0 5px 4px rgba(0, 0, 0, 0.2);
+            -moz-box-shadow:    0 0 5px 4px rgba(0, 0, 0, 0.2);
+            box-shadow:         0 0 5px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        </style>
         </head>
         
         <body>
-        <div id="map"></div>
+        <div id="container"></div>
+        <div id="loupe"></div>
         
-        <script>
+        <script type="text/javascript">
         
-        var MarkerAnnotation = mapkit.MarkerAnnotation,
-            clickAnnotation;
-        var sfo = new mapkit.Coordinate(37.616934, -122.383790),
-            work = new mapkit.Coordinate(37.3349, -122.0090201);
+        var MAGNIFICATION_FACTOR = 8,
+            LOUPE_DIAMETER = 180;
+        
+        var center = new mapkit.Coordinate(37.7952, -122.4028); // Transamerica Pyramid, SF
         
         mapkit.init({
             authorizationCallback: function(done) {
@@ -42,41 +66,48 @@
                 xhr.send();
             }
         });
-        var map = new mapkit.Map("map");
         
-        // Setting properties on creation:
-        var sfoAnnotation = new MarkerAnnotation(sfo, { color: "#f4a56d", title: "SFO", glyphText: "✈️" });
+        // Call when the zoom level has changed.
+        // Update the loupe to region centered on the marker that is 8x the map.
+        function calculateMagnifiedRegion(map, marker) {
+            var ratio = Math.min(window.innerWidth, window.innerHeight) / LOUPE_DIAMETER,
+                delta = map.region.span.latitudeDelta / (MAGNIFICATION_FACTOR * ratio),
+                newSpan = new mapkit.CoordinateSpan(delta, delta);
+            return new mapkit.CoordinateRegion(marker.coordinate, newSpan);
+        }
         
-        // Setting properties after creation:
-        var workAnnotation = new MarkerAnnotation(work);
-        workAnnotation.color = "#969696"; 
-        workAnnotation.title = "Work";
-        workAnnotation.subtitle = "Apple Park";
-        workAnnotation.selected = "true";
-        workAnnotation.glyphText = "";
-        
-        // Add and show both annotations on the map
-        map.showItems([sfoAnnotation, workAnnotation]);
-        
-        // Drop an annotation where a Shift-click is detected:
-        map.element.addEventListener("click", function(event) {
-            if(!event.shiftKey) {
-                return;
-            }
-        
-            if(clickAnnotation) {
-                map.removeAnnotation(clickAnnotation);
-            }
-        
-            var coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.pageX, event.pageY));
-            clickAnnotation = new MarkerAnnotation(coordinate, {
-                title: "Click!",
-                color: "#c969e0"
-            });
-            map.addAnnotation(clickAnnotation);
+        var map = new mapkit.Map("container", { center: center });
+        map.addEventListener("zoom-end", function() {
+            // Update the loupe's magnification after a zoom change
+            zoomedMap.setRegionAnimated(calculateMagnifiedRegion(map, marker));
         });
         
-        </script>
+        var marker = new mapkit.MarkerAnnotation(map.center, {
+            draggable: true,
+            selected: true,
+            title: "Drag me to change location "
+        });
+        marker.addEventListener("drag-start", function(event) {
+            // No need to show "Drag me" message once user has dragged
+            event.target.title = "";
+        });
+        marker.addEventListener("drag-end", function() {
+            // Center the loupe on the marker's new location
+            zoomedMap.setCenterAnimated(marker.coordinate);
+        });
+        map.addAnnotation(marker);
+        
+        // Initialize the loupe based on the marker's location on the map
+        var zoomedMap = new mapkit.Map("loupe", {
+            isScrollEnabled: false,
+            isZoomEnabled: false,
+            showsCompass: mapkit.FeatureVisibility.Hidden,
+            showsZoomControl: false,
+            showsMapTypeControl: false
+        });
+        zoomedMap.setRegionAnimated(calculateMagnifiedRegion(map, marker));
+        
+        </script>       
 		</div>
 
 </body>
